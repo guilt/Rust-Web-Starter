@@ -1,0 +1,15 @@
+[package]
+name = "Rust-Web-Starter"
+version = "0.1.0"
+authors = ["Karthik Kumar Viswanathan <karthikkumar@gmail.com>"]
+edition = "2018"
+
+[dependencies]
+actix-web = "3.0.0-beta.1"
+log = { version = "0.4", features = ["max_level_debug", "release_max_level_info"] }
+pretty_env_logger = "0.4.0"
+
+[profile.release]
+lto = false
+opt-level = 3
+codegen-units = 1

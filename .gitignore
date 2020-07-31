@@ -1,0 +1,12 @@
+*.rs.bk
+*.so
+*.out
+*.pyc
+*.pid
+*.sock
+*~
+guide/build/
+.idea
+.DS_Store
+target
+Cargo.lock
