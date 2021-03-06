@@ -1,20 +1,16 @@
 #![allow(non_snake_case)]
+#![feature(proc_macro_hygiene, decl_macro)]
+
 mod route;
 use log::{info};
 use pretty_env_logger;
-use actix_web::{App, HttpServer};
 
-#[actix_web::main]
-async fn main() -> std::io::Result<()> {
+#[macro_use] extern crate rocket;
+use rocket::config::{Config, Environment};
+
+fn main() {
     pretty_env_logger::init();
-    let address = "0.0.0.0:8080";
-    info!("Starting Web Server: {}", address);
-    HttpServer::new(|| {
-        App::new()
-            .service(route::index)
-            .service(route::indexWithName)
-    })
-    .bind(address)?
-    .run()
-    .await
+    rocket::ignite()
+        .mount("/", routes![route::index, route::hello])
+        .launch();
 }

@@ -5,7 +5,8 @@ authors = ["Karthik Kumar Viswanathan <karthikkumar@gmail.com>"]
 edition = "2018"
 
 [dependencies]
-actix-web = "3.0.0-beta.1"
+
+rocket = "0.4.7"
 log = { version = "0.4", features = ["max_level_debug", "release_max_level_info"] }
 pretty_env_logger = "0.4.0"
 
