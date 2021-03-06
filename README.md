@@ -4,7 +4,7 @@ Basic Rust Web Server template based on `rocket-rs`.
 
 # Dependencies
 
-We need `rust 1.50+` or above *stable* installed. They all have the
+We need `rust 1.50+` or above *nightly* installed. They all have the
 improvements we need for building things fast and known compatibility.
 
 It can be frustrating sometimes to see builds take a long time. **LTO**
