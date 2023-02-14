@@ -27,11 +27,11 @@ it does not make a real difference.
 
 [target.x86_64-apple-darwin]
 #linker = "/usr/bin/clang"
-rustflags = ["-C", "link-arg=--ld-path=/usr/bin/mold"]
+rustflags = ["-C", "link-arg=--ld-path=/path/to/ld64.mold"]
 
 [target.aarch64-apple-darwin]
 #linker = "/usr/bin/clang"
-rustflags = ["-C", "link-arg=--ld-path=/usr/bin/mold"]
+rustflags = ["-C", "link-arg=--ld-path=/path/to/ld64.mold"]
 
 [target.i686-pc-windows-msvc]
 #rustflags = []
