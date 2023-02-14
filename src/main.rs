@@ -1,14 +1,13 @@
 #![allow(non_snake_case)]
-#![feature(proc_macro_hygiene, decl_macro)]
 
 mod route;
 use pretty_env_logger;
 
 #[macro_use] extern crate rocket;
 
-fn main() {
+#[launch]
+fn rocket() -> _ {
     pretty_env_logger::init();
-    rocket::ignite()
+    rocket::build()
         .mount("/", routes![route::index, route::hello])
-        .launch();
 }

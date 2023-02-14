@@ -67,5 +67,5 @@ cargo build --release
 # Notes on Running
 
 ```bash
-RUST_LOG=info ROCKET_CLI_COLORS=on cargo run
+RUST_LOG=info ROCKET_CLI_COLORS=true cargo run --release
 ```
