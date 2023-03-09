@@ -4,8 +4,9 @@ Basic Rust Web Server template based on `rocket-rs`.
 
 # Dependencies
 
-We need `rust 1.50+` or above *nightly* installed. They all have the
-improvements we need for building things fast and known compatibility.
+We need `rust 1.67+` or above *stable* installed. They all have the
+improvements we need for building things fast and known compatibility
+for Rocket v0.5rc3+.
 
 Rust Configuration in your `.bashrc` and `.zshrc`
 
