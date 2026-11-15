@@ -209,7 +209,7 @@ jobs:
             -Clink-arg=/STACK:8388608
             -Ctarget-feature=+crt-static
             -Clink-arg=/LIBPATH:${{ runner.temp }}/r9xrsrt/target/i686-rust9x-windows-msvc/release
-        run: cargo +rust9x build --release --locked --bin legacy -Zbuild-std=std,panic_abort -Zbuild-std-features=compiler-builtins-mem --config 'profile.release.panic="abort"' --target "${{ matrix.target }}"
+        run: cargo +rust9x build --release --locked --bin legacy --config .cargo/rust9x.toml --config 'profile.release.panic="abort"' --target "${{ matrix.target }}"
 
       - name: Package
         if: ${{ steps.build.outcome == 'success' || steps.build_r9x.outcome == 'success' }}

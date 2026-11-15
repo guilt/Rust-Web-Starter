@@ -154,6 +154,7 @@ sha256sum -c checksums.txt
 
 ```text
 .cargo/config.toml       Fast linker and sccache configuration
+.cargo/rust9x.toml       rust9x build-std configuration
 .github/workflows/ci.yml      Format, clippy, build, test (with caching)
 .github/workflows/release.yml Cross-platform binaries, checksums, releases
 rust-toolchain.toml      Pinned stable toolchain + components
