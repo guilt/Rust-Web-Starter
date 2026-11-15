@@ -97,8 +97,8 @@ What makes it fast:
 Push a version tag to build and publish binaries:
 
 ```bash
-git tag v0.1.1
-git push origin v0.1.1
+git tag v0.1.2
+git push origin v0.1.2
 ```
 
 `.github/workflows/release.yml` cross-compiles the server and attaches the
@@ -118,10 +118,30 @@ Experimental targets (a failure is skipped, so it never blocks a release):
 - Linux: armv7, 386, riscv64, ppc64le, s390x, loongarch64
 - BSD: FreeBSD amd64/arm64/386, NetBSD amd64
 - Solaris family: Solaris amd64, illumos amd64
-- Windows: 386, arm64
+- Windows: 386, arm64, legacy 386 (rust9x)
 
-DragonFly and OpenBSD are not included because Rust does not ship a prebuilt
-`std` for them on stable.
+The non-blocking flag is there so a future toolchain or sysroot regression
+cannot block a release.
+
+FreeBSD arm and NetBSD arm/arm64/386 are also missing: stable Rust has no
+prebuilt `std` or cross image for them. OpenBSD and DragonFly are tier-3
+targets with no prebuilt `std` on stable.
+
+### Legacy Windows (rust9x)
+
+The `windows-legacy-386` asset is built with the
+[rust9x](https://github.com/rust9x/rust) toolchain and the
+[r9xrsrt](https://github.com/rust9x/r9xrsrt) runtime using `-Zbuild-std`. It is
+a std-only blocking server (`src/bin/legacy.rs`) with the same two routes,
+because Rocket/tokio hit a pre-main CRT/std issue on XP. The binary imports
+only XP-era `kernel32`/`ws2_32` APIs and runs on Windows XP x86 (tested on
+XP 5.1.2600). WinSock 2 is required; 9x/Me are untested.
+
+The main Rocket/tokio build uses the
+[mio9x](https://github.com/guilt/mio9x) fork for rust9x. Tokio itself runs on
+XP, but Rocket and tokio's `net` feature still hit the pre-main issue, which is
+why the legacy asset uses the std-only server. The legacy target is
+experimental and does not block a release.
 
 `workflow_dispatch` runs the whole matrix without publishing, which is useful
 for testing changes to the pipeline. Verify a downloaded release with:
@@ -139,6 +159,7 @@ sha256sum -c checksums.txt
 rust-toolchain.toml      Pinned stable toolchain + components
 src/main.rs              Rocket launch and route mounting
 src/route.rs             Handlers
+src/bin/legacy.rs        std-only XP legacy server (same routes)
 Cargo.toml               Dependencies and build profiles
 ```
 

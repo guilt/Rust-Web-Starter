@@ -542,8 +542,7 @@ checksum = "d5848f5a9e8117cf94f2f90faac24a87ff81600ff8628c1e3deaab572e76bfa1"
 [[package]]
 name = "mio"
 version = "1.2.5"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "20521a903f02b0a573cd6840e9d0a5a0cc043d361fe924092cd70f8556cc9c4a"
+source = "git+https://github.com/guilt/mio9x.git?branch=rust9x#2628ca77db152403d90fcb96cd22aacf5d5a6ae0"
 dependencies = [
  "libc",
  "wasi",

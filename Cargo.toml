@@ -14,6 +14,14 @@ publish = false
 # features = ["http2", "json", "tls"]
 rocket = { version = "0.5.2", default-features = false }
 
+[lints.rust]
+unexpected_cfgs = { level = "warn", check-cfg = ['cfg(target_family, values("rust9x"))'] }
+
+[patch.crates-io]
+# mio9x: mio with rust9x / Windows 9x fallbacks (single-entry IOCP and no
+# Vista-only AFD completion-mode flag). Normal targets use upstream behavior.
+mio = { git = "https://github.com/guilt/mio9x.git", branch = "rust9x" }
+
 # Fast local iteration: line-table debug info only, incremental compilation on.
 [profile.dev]
 opt-level = 0
