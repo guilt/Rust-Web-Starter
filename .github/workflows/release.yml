@@ -111,6 +111,12 @@ jobs:
           echo "$RUNNER_TEMP/cross-bin" >> "$GITHUB_PATH"
           "$RUNNER_TEMP/cross-bin/cross" --version
 
+      - name: Link Solaris libc compat shim
+        if: matrix.target == 'x86_64-pc-solaris'
+        shell: bash
+        run: |
+          echo "CARGO_TARGET_X86_64_PC_SOLARIS_RUSTFLAGS=-C link-arg=/compat.o" >> "$GITHUB_ENV"
+
       - name: Build
         id: build
         shell: bash
