@@ -1,5 +1,5 @@
 [package]
-name = "Rust-Web-Starter"
+name = "rust-web-starter"
 version = "0.1.0"
 edition = "2024"
 rust-version = "1.85"

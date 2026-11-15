@@ -92,11 +92,50 @@ What makes it fast:
 - **CI caching** via `Swatinem/rust-cache` + `mozilla-actions/sccache-action`
   (GitHub Actions cache backend), plus mold, in `.github/workflows/ci.yml`.
 
+## Releases
+
+Push a version tag to build and publish binaries:
+
+```bash
+git tag v0.1.0
+git push origin v0.1.0
+```
+
+`.github/workflows/release.yml` cross-compiles the server and attaches the
+binaries plus `checksums.txt` to the GitHub release. Binaries are named
+`rust-web-starter-<os>-<arch>` (with `.exe` on Windows).
+
+Core targets (always built):
+
+| OS      | Architectures              |
+| ------- | -------------------------- |
+| Linux   | amd64, arm64 (static musl) |
+| macOS   | amd64, arm64               |
+| Windows | amd64 (MSVC)               |
+
+Experimental targets (a failure is skipped, so it never blocks a release):
+
+- Linux: armv7, 386, riscv64, ppc64le, s390x, loongarch64
+- BSD: FreeBSD amd64/arm64/386, NetBSD amd64
+- Solaris family: Solaris amd64, illumos amd64
+- Windows: 386, arm64
+
+DragonFly and OpenBSD are not included because Rust does not ship a prebuilt
+`std` for them on stable.
+
+`workflow_dispatch` runs the whole matrix without publishing, which is useful
+for testing changes to the pipeline. Verify a downloaded release with:
+
+```bash
+sha256sum -c checksums.txt
+```
+
 ## Project layout
 
 ```text
 .cargo/config.toml       Fast linker and sccache configuration
-.github/workflows/ci.yml Format, clippy, build, test (with caching)
+.github/workflows/ci.yml      Format, clippy, build, test (with caching)
+.github/workflows/release.yml Cross-platform binaries, checksums, releases
 rust-toolchain.toml      Pinned stable toolchain + components
 src/main.rs              Rocket launch and route mounting
 src/route.rs             Handlers

@@ -1,0 +1,153 @@
+name: Release
+
+on:
+  push:
+    tags:
+      - "v*.*.*"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+env:
+  CARGO_TERM_COLOR: always
+  # Release builds are one-shot; keep the host-only sccache wrapper out of the
+  # way (and out of cross's containers).
+  RUSTC_WRAPPER: ""
+
+jobs:
+  test:
+    name: Test
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Install mold
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y mold
+
+      - name: Install Rust
+        uses: dtolnay/rust-toolchain@stable
+
+      - name: Test
+        run: cargo test --release --locked
+
+  build:
+    name: Build ${{ matrix.platform }}
+    needs: test
+    runs-on: ${{ matrix.os }}
+    timeout-minutes: 40
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          # Core targets: supported by every release.
+          - { target: x86_64-unknown-linux-musl, os: ubuntu-latest, platform: linux-amd64, cross: true, experimental: false }
+          - { target: aarch64-unknown-linux-musl, os: ubuntu-latest, platform: linux-arm64, cross: true, experimental: false }
+          - { target: x86_64-pc-windows-msvc, os: windows-latest, platform: windows-amd64, cross: false, experimental: false }
+          - { target: x86_64-apple-darwin, os: macos-15-intel, platform: darwin-amd64, cross: false, experimental: false }
+          - { target: aarch64-apple-darwin, os: macos-15, platform: darwin-arm64, cross: false, experimental: false }
+
+          # Experimental Linux architectures.
+          - { target: armv7-unknown-linux-musleabihf, os: ubuntu-latest, platform: linux-armv7, cross: true, experimental: true }
+          - { target: i686-unknown-linux-musl, os: ubuntu-latest, platform: linux-386, cross: true, experimental: true }
+          - { target: riscv64gc-unknown-linux-musl, os: ubuntu-latest, platform: linux-riscv64, cross: true, experimental: true }
+          - { target: powerpc64le-unknown-linux-gnu, os: ubuntu-latest, platform: linux-ppc64le, cross: true, experimental: true }
+          - { target: s390x-unknown-linux-gnu, os: ubuntu-latest, platform: linux-s390x, cross: true, experimental: true }
+          - { target: loongarch64-unknown-linux-musl, os: ubuntu-latest, platform: linux-loongarch64, cross: true, experimental: true }
+
+          # Experimental BSD / Solaris family (cross, tier-2 std).
+          - { target: x86_64-unknown-freebsd, os: ubuntu-latest, platform: freebsd-amd64, cross: true, experimental: true }
+          - { target: aarch64-unknown-freebsd, os: ubuntu-latest, platform: freebsd-arm64, cross: true, experimental: true }
+          - { target: i686-unknown-freebsd, os: ubuntu-latest, platform: freebsd-386, cross: true, experimental: true }
+          - { target: x86_64-unknown-netbsd, os: ubuntu-latest, platform: netbsd-amd64, cross: true, experimental: true }
+          - { target: x86_64-pc-solaris, os: ubuntu-latest, platform: solaris-amd64, cross: true, experimental: true }
+          - { target: x86_64-unknown-illumos, os: ubuntu-latest, platform: illumos-amd64, cross: true, experimental: true }
+
+          # Experimental Windows variants.
+          - { target: i686-pc-windows-msvc, os: windows-latest, platform: windows-386, cross: false, experimental: true }
+          - { target: aarch64-pc-windows-msvc, os: windows-11-arm, platform: windows-arm64, cross: false, experimental: true }
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Install Rust
+        uses: dtolnay/rust-toolchain@stable
+        with:
+          targets: ${{ matrix.target }}
+
+      - name: Install cross
+        if: matrix.cross
+        shell: bash
+        run: |
+          set -euo pipefail
+          curl -fsSL https://github.com/cross-rs/cross/releases/download/v0.2.5/cross-x86_64-unknown-linux-gnu.tar.gz \
+            | tar -xz -C "$HOME/.cargo/bin"
+          cross --version
+
+      - name: Build
+        id: build
+        shell: bash
+        continue-on-error: ${{ matrix.experimental }}
+        run: |
+          set -euo pipefail
+          if [[ "${{ matrix.cross }}" == "true" ]]; then
+            # mold and sccache are host-only; cross has its own toolchain.
+            rm -f .cargo/config.toml
+            cross build --release --locked --target "${{ matrix.target }}"
+          else
+            cargo build --release --locked --target "${{ matrix.target }}"
+          fi
+
+      - name: Package
+        if: steps.build.outcome == 'success'
+        shell: bash
+        run: |
+          set -euo pipefail
+          exe=""
+          if [[ "${{ matrix.target }}" == *windows* ]]; then exe=".exe"; fi
+          mkdir -p dist
+          src="target/${{ matrix.target }}/release/rust-web-starter${exe}"
+          dest="dist/rust-web-starter-${{ matrix.platform }}${exe}"
+          cp "$src" "$dest"
+          ls -lh "$dest"
+
+      - name: Upload artifact
+        if: steps.build.outcome == 'success'
+        uses: actions/upload-artifact@v4
+        with:
+          name: rust-web-starter-${{ matrix.platform }}
+          path: dist/rust-web-starter-${{ matrix.platform }}*
+          if-no-files-found: error
+          retention-days: 7
+
+  release:
+    name: Publish GitHub release
+    needs: build
+    if: github.event_name == 'push' && startsWith(github.ref, 'refs/tags/v')
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    permissions:
+      contents: write
+    steps:
+      - name: Download binaries
+        uses: actions/download-artifact@v4
+        with:
+          pattern: rust-web-starter-*
+          path: dist
+          merge-multiple: true
+
+      - name: Create checksums
+        run: |
+          cd dist
+          sha256sum rust-web-starter-* > checksums.txt
+          cat checksums.txt
+
+      - name: Publish release
+        uses: softprops/action-gh-release@v2
+        with:
+          files: |
+            dist/rust-web-starter-*
+            dist/checksums.txt
+          generate_release_notes: true
