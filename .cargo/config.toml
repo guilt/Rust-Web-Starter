@@ -1,0 +1,29 @@
+# Link with mold on Linux. It is dramatically faster than the default linker
+# for debug builds and is what makes local iteration feel instant.
+#
+# Install it first:
+#   Debian/Ubuntu: sudo apt install mold
+#   Fedora:        sudo dnf install mold
+#   Arch:          sudo pacman -S mold
+#   macOS:         brew install mold  (then use the commented block below)
+#
+# Don't have mold? Remove the matching target section and Rocket still builds
+# fine with the system linker.
+
+[target.x86_64-unknown-linux-gnu]
+rustflags = ["-C", "link-arg=-fuse-ld=mold"]
+
+[target.aarch64-unknown-linux-gnu]
+rustflags = ["-C", "link-arg=-fuse-ld=mold"]
+
+# macOS: uncomment after installing mold (path may vary on Intel Macs).
+# [target.x86_64-apple-darwin]
+# rustflags = ["-C", "link-arg=-fuse-ld=/opt/homebrew/bin/ld64.mold"]
+#
+# [target.aarch64-apple-darwin]
+# rustflags = ["-C", "link-arg=-fuse-ld=/opt/homebrew/bin/ld64.mold"]
+
+# Opt-in shared compilation cache. Install sccache and uncomment to reuse
+# artifacts across clean builds and branches.
+# [build]
+# rustc-wrapper = "sccache"

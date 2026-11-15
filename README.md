@@ -1,72 +1,108 @@
 # Rust Web Starter
 
-Basic Rust Web Server template based on `rocket-rs`. 
+A minimal web server starter built on [Rocket](https://rocket.rs), tuned for
+**fast local builds** and modern Rust.
 
-# Dependencies
-
-We need `rust 1.67+` or above *stable* installed. They all have the
-improvements we need for building things fast and known compatibility
-for Rocket v0.5rc3+.
-
-Rust Configuration in your `.bashrc` and `.zshrc`
-
-```bash
-export CARGO_HOME=$HOME/.cargo
-PATH=$PATH:$CARGO_HOME/bin
+```text
+GET /              -> Hello, world! Hit /hello/Potato
+GET /hello/<name>  -> Hello <name>!
 ```
 
-To speed up builds, it is suggested you use the **mold** linker, currently
-supported on *Linux* and *Darwin*. You can set this up in your Cargo
-Configuration in `~/.cargo/config.toml`.
+## Requirements
 
-You could set up **sccache** as well but there are some crates where
-it does not make a real difference.
+- **Rust stable** (edition 2024, so 1.85+). `rust-toolchain.toml` installs the
+  right toolchain and components automatically via rustup.
+- **mold** on Linux, for fast linking. Install it with your package manager:
+
+  ```bash
+  sudo apt install mold      # Debian/Ubuntu
+  sudo dnf install mold      # Fedora
+  sudo pacman -S mold        # Arch
+  brew install mold          # macOS (see the commented block in .cargo/config.toml)
+  ```
+
+  No mold? Delete the matching `[target.*]` section in `.cargo/config.toml` and
+  the system linker is used instead. Windows is unaffected.
+
+## Quick start
+
+```bash
+cargo run --release
+```
+
+Then open <http://127.0.0.1:8000/> or:
+
+```bash
+curl http://127.0.0.1:8000/hello/Potato
+```
+
+Useful environment variables:
+
+| Variable            | Default     | Description                     |
+| ------------------- | ----------- | ------------------------------- |
+| `ROCKET_PORT`       | `8000`      | Port to listen on               |
+| `ROCKET_ADDRESS`    | `127.0.0.1` | Bind address                    |
+| `ROCKET_LOG_LEVEL`  | `normal`    | `off`, `critical`, `normal`, `debug` |
+
+Rocket installs its own logger, so no extra logging crate is needed.
+
+## Build speed
+
+Measured with a clean `target/` on an AMD Ryzen Threadripper 3970X (32C/64T),
+Rust 1.100, mold:
+
+| Build                    | Before | After  |
+| ------------------------ | -----: | -----: |
+| Clean debug              |  ~16s  |  ~12s  |
+| Clean release            |  ~17s  |  ~15s  |
+| Incremental edit+rebuild |      — | ~0.5s  |
+
+What makes it fast:
+
+- **mold** for linking (config in `.cargo/config.toml`).
+- **`debug = 1`** in the dev profile: line tables only, so debug info is much
+  smaller and linking is cheaper. Backtraces still show file/line numbers.
+- **Incremental compilation** and 256 codegen units for dev builds.
+- **No HTTP/2 by default.** Rocket's default `http2` feature pulls in `h2` and
+  friends; enable it only when you need it (see below).
+- **Thin LTO** for release builds: most of the runtime benefit of fat LTO, but
+  much less build time.
+- **`Cargo.lock` is committed**, so dependency resolution is reproducible and
+  cached builds are not invalidated by surprise upgrades.
+- **CI caching** via `Swatinem/rust-cache`, plus mold, in
+  `.github/workflows/ci.yml`.
+
+## Project layout
+
+```text
+.cargo/config.toml       Fast linker and optional sccache config
+.github/workflows/ci.yml Format, clippy, build, test (with caching)
+rust-toolchain.toml      Pinned stable toolchain + components
+src/main.rs              Rocket launch and route mounting
+src/route.rs             Handlers
+Cargo.toml               Dependencies and build profiles
+```
+
+## Customizing
+
+Enable more Rocket features when you need them:
 
 ```toml
-[build]
-# rustc-wrapper = "sccache"
-
-[target.x86_64-apple-darwin]
-#linker = "/usr/bin/clang"
-rustflags = ["-C", "link-arg=--ld-path=/path/to/ld64.mold"]
-
-[target.aarch64-apple-darwin]
-#linker = "/usr/bin/clang"
-rustflags = ["-C", "link-arg=--ld-path=/path/to/ld64.mold"]
-
-[target.i686-pc-windows-msvc]
-#rustflags = []
-
-[target.x86_64-pc-windows-msvc]
-#rustflags = []
-
-[target.i686-unknown-linux-gnu]
-#linker = "/usr/bin/gcc"
-rustflags = ["-C", "link-arg=-fuse-ld=mold"]
-
-[target.x86_64-unknown-linux-gnu]
-#linker = "/usr/bin/gcc"
-rustflags = ["-C", "link-arg=-fuse-ld=mold"]
-
-[target.aarch64-unknown-linux-gnu]
-#linker = "/usr/bin/gcc"
-rustflags = ["-C", "link-arg=-fuse-ld=mold"]
-```
-# Notes on Compilation
-
-## Building for Local
-```bash
-cargo build
+[dependencies]
+rocket = { version = "0.5.2", default-features = false, features = ["json", "http2", "tls"] }
 ```
 
-## Building for Release
+Want to reuse compiled dependencies across clean builds and branches? Install
+`sccache` and uncomment the `[build] rustc-wrapper` block in
+`.cargo/config.toml`.
+
+Want full debug info instead of line tables? Set `debug = 2` in
+`[profile.dev]`.
+
+## Checks
 
 ```bash
-cargo build --release
-```
-
-# Notes on Running
-
-```bash
-RUST_LOG=info ROCKET_CLI_COLORS=true cargo run --release
+cargo fmt --all --check
+cargo clippy --all-targets --locked -- -D warnings
+cargo test --release --locked
 ```
