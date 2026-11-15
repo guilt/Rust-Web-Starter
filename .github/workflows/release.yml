@@ -34,9 +34,28 @@ jobs:
       - name: Test
         run: cargo test --release --locked
 
+  cross:
+    name: Build cross
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    steps:
+      - name: Install Rust
+        uses: dtolnay/rust-toolchain@stable
+
+      - name: Build cross from git
+        run: cargo install cross --git https://github.com/cross-rs/cross --locked --root "$GITHUB_WORKSPACE/.cross-bin"
+
+      - name: Upload cross
+        uses: actions/upload-artifact@v4
+        with:
+          name: cross-tool
+          path: .cross-bin/bin/*
+          if-no-files-found: error
+          retention-days: 1
+
   build:
     name: Build ${{ matrix.platform }}
-    needs: test
+    needs: [test, cross]
     runs-on: ${{ matrix.os }}
     timeout-minutes: 40
     strategy:
@@ -79,12 +98,18 @@ jobs:
 
       - name: Install cross
         if: matrix.cross
+        uses: actions/download-artifact@v4
+        with:
+          name: cross-tool
+          path: ${{ runner.temp }}/cross-bin
+
+      - name: Add cross to PATH
+        if: matrix.cross
         shell: bash
         run: |
-          set -euo pipefail
-          curl -fsSL https://github.com/cross-rs/cross/releases/download/v0.2.5/cross-x86_64-unknown-linux-gnu.tar.gz \
-            | tar -xz -C "$HOME/.cargo/bin"
-          cross --version
+          chmod +x "$RUNNER_TEMP"/cross-bin/*
+          echo "$RUNNER_TEMP/cross-bin" >> "$GITHUB_PATH"
+          "$RUNNER_TEMP/cross-bin/cross" --version
 
       - name: Build
         id: build
