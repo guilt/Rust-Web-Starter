@@ -97,8 +97,8 @@ What makes it fast:
 Push a version tag to build and publish binaries:
 
 ```bash
-git tag v0.1.0
-git push origin v0.1.0
+git tag v0.1.1
+git push origin v0.1.1
 ```
 
 `.github/workflows/release.yml` cross-compiles the server and attaches the
